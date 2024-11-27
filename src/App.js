@@ -1,24 +1,34 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Header from "./components/Header";
+import LoginForm from "./components/LoginForm";
+import RegistrationForm from "./components/RegistrationForm";
+import Main from "./pages/Main";
+import ChatWindow from "./components/ChatWindow";
 
 function App() {
+  const isAuth = false; // Состояние авторизации
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+    <BrowserRouter>
+      <Header isAuthenticated={isAuth} />
+      <Routes>
+        {/* Публичные маршруты */}
+        <Route path="/reg" element={<RegistrationForm />} />
+        <Route path="/login" element={<LoginForm />} />
+
+        {/* Защищённые маршруты */}
+        <Route
+          path="/"
+          element={isAuth ? <Main /> : <Navigate to="/login" replace />}
         >
-          Learn React
-        </a>
-      </header>
-    </div>
+          {/* Динамическое окно чата */}
+          <Route path="chat/:id" element={<ChatWindow />} />
+          {/* По умолчанию */}
+          <Route path="*" element={<ChatWindow />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 
