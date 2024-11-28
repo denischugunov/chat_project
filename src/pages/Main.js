@@ -1,21 +1,37 @@
-import React from "react";
-import { Outlet, Routes, Route } from "react-router-dom";
+import React, { useState } from "react";
+import Header from "../components/Header";  // Импортируем компонент хедера
 import Chats from "../components/Chats";
 import Profile from "../components/Profile";
-
 import ChatWindow from "../components/ChatWindow";
 
 function Main() {
-  return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      {/* Левая колонка (1/3 экрана) */}
-      <div style={{ flex: 1, borderRight: "1px solid #ddd", padding: "10px" }}>
-        <Chats />
-      </div>
+  const [state, setState] = useState('chats');
+  const isAuthenticated = true; // Здесь можно заменить на состояние аутентификации
 
-      {/* Правая колонка (2/3 экрана) */}
-      <div style={{ flex: 2, padding: "10px" }}>
-        <ChatWindow />
+  const handleStateChange = (state) => {
+    setState(state);
+  }
+
+  return (
+    <div className="d-flex flex-column" style={{ height: "100vh" }}>
+      {/* Хедер */}
+      <Header isAuthenticated={isAuthenticated} openSettings={handleStateChange}/>
+
+      {/* Основной контейнер с использованием грид-сетки */}
+      <div className="container-fluid d-flex" style={{ flex: 1 }}>
+        {/* Левая колонка (1/3 экрана) */}
+        <div className={`col-12 col-md-4 border-end p-3`}>
+          {state === 'chats' ? (
+            <Chats />
+          ) : state === 'profile' ? (
+            <Profile handleGoBack={handleStateChange}/>
+          ) : null}
+        </div>
+
+        {/* Правая колонка (2/3 экрана) */}
+        <div className="col-12 col-md-8 p-3">
+          <ChatWindow />
+        </div>
       </div>
     </div>
   );

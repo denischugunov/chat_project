@@ -1,32 +1,41 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Container from "react-bootstrap/Container";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 import Card from "react-bootstrap/Card";
 import { useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux"; // Подключаем useDispatch и useSelector
+import { fetchMessages, sendMessage } from "../redux/chatSlice"; // Импортируем экшены из слайса
+import ScrollToBottom from 'react-scroll-to-bottom'; 
 
 function ChatWindow() {
   const { id } = useParams();
+  const dispatch = useDispatch();
 
-  const [messages, setMessages] = useState([
-    { id: 1, sender: "You", text: "Hi there!", time: "10:30 AM" },
-    { id: 2, sender: "Alex", text: "Hello!", time: "10:31 AM" },
-  ]);
+  // Получаем сообщения из Redux
+  const messages = useSelector((state) => state.chat.messages);
+  const loading = useSelector((state) => state.chat.loading);
+  const error = useSelector((state) => state.chat.error);
+  const currentUserId = useSelector((state) => state.user.user);
+  
+
   const [newMessage, setNewMessage] = useState("");
+
+  // Загружаем сообщения при изменении chatId
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchMessages(id)); // Получаем сообщения при загрузке компонента
+    }
+  }, [id, dispatch]);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (newMessage.trim()) {
-      const newMsg = {
-        id: messages.length + 1,
-        sender: "You",
+      const message = {
         text: newMessage,
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        userId: currentUserId, // Здесь можно установить ID текущего пользователя
       };
-      setMessages([...messages, newMsg]);
+      dispatch(sendMessage(id, message)); // Отправляем сообщение через экшен Redux
       setNewMessage(""); // Очистить поле ввода
     }
   };
@@ -44,42 +53,48 @@ function ChatWindow() {
           </Card.Header>
 
           {/* Переписка */}
-          <div
+          <ScrollToBottom
             className="flex-grow-1 overflow-auto p-3"
             style={{ backgroundColor: "transparent" }}
           >
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`d-flex ${
-                  message.sender === "You"
-                    ? "justify-content-end"
-                    : "justify-content-start"
-                } mb-3`}
-              >
+            {loading ? (
+              <div>Loading...</div> // Показать индикатор загрузки
+            ) : error ? (
+              <div>Error: {error}</div> // Показать ошибку, если она произошла
+            ) : (
+              messages.map((message) => (
                 <div
-                  className={`p-3 rounded ${
-                    message.sender === "You"
-                      ? "bg-primary text-white"
-                      : "bg-light text-dark"
-                  }`}
-                  style={{
-                    maxWidth: "60%",
-                    whiteSpace: "pre-wrap",
-                    overflowWrap: "break-word",
-                  }}
+                  key={message.id}
+                  className={`d-flex ${
+                    message.userId === currentUserId
+                      ? "justify-content-end"
+                      : "justify-content-start"
+                  } m-3`}
                 >
-                  <div style={{ fontSize: "0.9rem" }}>{message.text}</div>
                   <div
-                    className="text-muted"
-                    style={{ fontSize: "0.75rem", textAlign: "right" }}
+                    className={`p-3 rounded ${
+                      message.userId === currentUserId
+                        ? "bg-primary text-white"
+                        : "bg-light text-dark"
+                    }`}
+                    style={{
+                      maxWidth: "60%",
+                      whiteSpace: "pre-wrap",
+                      overflowWrap: "break-word",
+                    }}
                   >
-                    {message.time}
+                    <div style={{ fontSize: "0.9rem" }}>{message.text}</div>
+                    <div
+                      className="text-muted"
+                      style={{ fontSize: "0.75rem", textAlign: "right" }}
+                    >
+                      {(message.timestamp ? message.timestamp.toDate() : new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))
+            )}
+          </ScrollToBottom>
 
           {/* Поле ввода */}
           <Form onSubmit={handleSendMessage} className="d-flex p-3 bg-white">

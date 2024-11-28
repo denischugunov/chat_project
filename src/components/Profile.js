@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Form from "react-bootstrap/Form";
 import Card from "react-bootstrap/Card";
 import Container from "react-bootstrap/Container";
 import { Formik } from "formik";
 import * as yup from "yup";
+import { setDoc, doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase/config";
+import { useSelector } from "react-redux";
 
 // Предустановленные аватары
 const avatars = [
@@ -12,40 +15,88 @@ const avatars = [
   "/images/avatars/avatar_3.png",
 ];
 
-function Profile() {
+function Profile({ handleGoBack }) {
+  const currentUserId = useSelector((state) => state.user.user); // Получаем ID пользователя из redux
+  const [userData, setUserData] = useState(null); // Храним данные пользователя
+  console.log(currentUserId);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        // Создаем ссылку на документ пользователя в коллекции "users"
+        const docRef = doc(db, "users", currentUserId); // Правильная ссылка на документ
+
+        // Получаем документ
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          // Если документ существует, сохраняем данные в state
+          setUserData(docSnap.data());
+        } else {
+          console.log("No such document!");
+        }
+      } catch (error) {
+        console.error("Error fetching document:", error);
+      }
+    };
+
+    if (currentUserId) {
+      fetchUserData(); // Получаем данные пользователя при изменении currentUserId
+    }
+  }, [currentUserId]);
+
   // Схема валидации
   const schema = yup.object().shape({
     name: yup
       .string()
       .required("Name is required")
       .min(2, "Name must be at least 2 characters"),
-    email: yup
-      .string()
-      .email("Invalid email address")
-      .required("Email is required"),
-    password: yup
-      .string()
-      .min(6, "Password must be at least 6 characters")
-      .required("Password is required"),
     avatar: yup.string().required("Please select an avatar"),
   });
+
+  // Если данные пользователя еще не загружены, показываем индикатор загрузки
+  if (!userData) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <Container className="d-flex justify-content-center vh-100">
       <Card style={{ width: "100%", maxWidth: "500px" }} className="p-4 shadow">
         <Card.Body>
-          <Card.Title className="text-center mb-4">Profile Settings</Card.Title>
+          <Card.Title className="text-center mb-4">
+            <button
+              type="button"
+              onClick={() => handleGoBack("chats")} // Обработчик события для кнопки назад
+              className="btn btn-link"
+              style={{ position: "absolute", left: "10px", top: "10px" }}
+            >
+              <i
+                className="bi bi-arrow-left-circle"
+                style={{ fontSize: "24px" }}
+              ></i>
+            </button>
+            Profile Settings
+          </Card.Title>
           <Formik
             validationSchema={schema}
             initialValues={{
-              name: "John Doe", // Текущее имя
-              email: "john.doe@example.com", // Текущая почта
-              password: "", // Пароль скрыт
-              avatar: avatars[0], // Текущий аватар
+              name: userData.name || "", // Заполняем имя из данных пользователя
+              email: userData.email || "", // Заполняем email из данных пользователя
+              avatar: userData.profilePic || avatars[0], // Заполняем аватар
             }}
-            onSubmit={(values) => {
-              console.log("Updated Profile:", values);
-              alert("Profile updated successfully!");
+            onSubmit={async (values) => {
+              try {
+                // Отправляем обновленные данные в Firestore
+                await setDoc(doc(db, "users", currentUserId), {
+                  name: values.name,
+                  email: values.email,
+                  profilePic: values.avatar,
+                }, { merge: true });
+                alert("Profile updated successfully!");
+              } catch (error) {
+                console.error("Error updating document:", error);
+                alert("Failed to update profile.");
+              }
             }}
           >
             {({
@@ -79,42 +130,6 @@ function Profile() {
                     />
                     <Form.Control.Feedback type="invalid">
                       {errors.name}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-
-                  {/* Поле Email */}
-                  <Form.Group className="mb-3" controlId="formBasicEmail">
-                    <Form.Label>Email address</Form.Label>
-                    <Form.Control
-                      type="email"
-                      name="email"
-                      placeholder="Enter email"
-                      value={values.email}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      isValid={touched.email && !errors.email}
-                      isInvalid={touched.email && !!errors.email}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.email}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-
-                  {/* Поле Password */}
-                  <Form.Group className="mb-3" controlId="formBasicPassword">
-                    <Form.Label>Password</Form.Label>
-                    <Form.Control
-                      type="password"
-                      name="password"
-                      placeholder="Enter new password"
-                      value={values.password}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      isValid={touched.password && !errors.password}
-                      isInvalid={touched.password && !!errors.password}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.password}
                     </Form.Control.Feedback>
                   </Form.Group>
 

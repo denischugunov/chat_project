@@ -4,12 +4,22 @@ import Nav from "react-bootstrap/Nav";
 import Navbar from "react-bootstrap/Navbar";
 import NavDropdown from "react-bootstrap/NavDropdown";
 import Form from "react-bootstrap/Form";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase/config";
+import { useNavigate, Link } from "react-router";
 
-function Header({ isAuthenticated }) {
+function Header({ isAuthenticated, openSettings }) {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    navigate("/login");
+  };
+
   return (
     <Navbar expand="lg" className="bg-body-tertiary py-2">
       <Container>
-        <Navbar.Brand href="#home" className="d-flex align-items-center">
+        <Navbar.Brand as={Link} to="/" className="d-flex align-items-center">
           <img
             alt="Logo"
             src="/images/chatLogo.png"
@@ -44,9 +54,9 @@ function Header({ isAuthenticated }) {
                 id="profile-nav-dropdown"
                 className="me-3"
               >
-                <NavDropdown.Item href="#action/2.1">Settings</NavDropdown.Item>
+                <NavDropdown.Item href="#action/2.1" onClick={()=>openSettings('profile')}>Settings</NavDropdown.Item>
                 <NavDropdown.Divider />
-                <NavDropdown.Item href="#action/2.2">Exit</NavDropdown.Item>
+                <NavDropdown.Item href="#action/2.2" onClick={handleLogout}>Exit</NavDropdown.Item>
               </NavDropdown>
             ) : null}
           </Nav>
